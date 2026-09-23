@@ -130,7 +130,8 @@ describe('Hybrid PDF Transport and Validation', () => {
       'uploads/mock_uuid.pdf',
       file,
       expect.objectContaining({
-        access: 'public',
+        access: 'private',
+        contentType: 'application/pdf',
         token: 'mock_token_123',
       })
     );

@@ -57,7 +57,8 @@ export const documentService = {
     }
   ): Promise<BlobUploadResult> {
     return put(pathname, file, {
-      access: 'public',
+      access: 'private',
+      contentType: 'application/pdf',
       token,
       abortSignal: options?.signal,
       onUploadProgress: (progress) => {
