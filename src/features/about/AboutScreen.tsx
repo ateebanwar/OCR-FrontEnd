@@ -23,7 +23,7 @@ export const AboutScreen: React.FC = () => {
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-foreground">OCR Intelligence</h2>
             <p className="text-xs font-mono text-foreground-muted uppercase tracking-wider">
-              Developed by Ateeb
+              Developer: Ateeb Anwar
             </p>
             <p className="text-xs text-foreground-muted pt-1 leading-relaxed">
               An enterprise-grade document intelligence platform designed to extract, reconcile,
