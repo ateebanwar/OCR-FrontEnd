@@ -74,7 +74,7 @@ class ApiClient {
     throw new ApiError(message, code, status, errorData?.details);
   }
 
-  public async get<T>(path: string): Promise<T> {
+  public async get<T>(path: string, signal?: AbortSignal): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     let res: Response;
 
@@ -82,8 +82,12 @@ class ApiClient {
       res = await fetch(url, {
         method: 'GET',
         headers: this.getHeaders(false),
+        signal,
       });
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new ApiError('Request was cancelled.', 'ABORTED', 0);
+      }
       const origMsg = err instanceof Error ? err.message : '';
       throw new ApiError(
         origMsg ? `Network error: ${origMsg}` : 'Unable to connect to the backend server. Please check your connection.',
@@ -107,7 +111,7 @@ class ApiClient {
     return result.data;
   }
 
-  public async post<T>(path: string, body?: unknown): Promise<T> {
+  public async post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     let res: Response;
 
@@ -116,8 +120,12 @@ class ApiClient {
         method: 'POST',
         headers: this.getHeaders(true),
         body: body ? JSON.stringify(body) : undefined,
+        signal,
       });
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new ApiError('Request was cancelled.', 'ABORTED', 0);
+      }
       const origMsg = err instanceof Error ? err.message : '';
       throw new ApiError(
         origMsg ? `Network error: ${origMsg}` : 'Unable to connect to the backend server. Please check your connection.',
@@ -141,7 +149,7 @@ class ApiClient {
     return result.data;
   }
 
-  public async postFormData<T>(path: string, formData: FormData): Promise<T> {
+  public async postFormData<T>(path: string, formData: FormData, signal?: AbortSignal): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     let res: Response;
 
@@ -151,8 +159,12 @@ class ApiClient {
         method: 'POST',
         headers: this.getHeaders(false),
         body: formData,
+        signal,
       });
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new ApiError('Request was cancelled.', 'ABORTED', 0);
+      }
       const origMsg = err instanceof Error ? err.message : '';
       throw new ApiError(
         origMsg ? `Upload failed: ${origMsg}` : 'Upload failed. Please check your connection to the server.',
@@ -178,7 +190,8 @@ class ApiClient {
 
   public async postBlob(
     path: string,
-    body: unknown
+    body: unknown,
+    signal?: AbortSignal
   ): Promise<{ blob: Blob; filename: string | null }> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     let res: Response;
@@ -198,8 +211,12 @@ class ApiClient {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
+        signal,
       });
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new ApiError('Request was cancelled.', 'ABORTED', 0);
+      }
       const origMsg = err instanceof Error ? err.message : '';
       throw new ApiError(
         origMsg ? `Download failed: ${origMsg}` : 'Download failed. Network connection error.',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AlertCircle, RotateCcw, ShieldAlert } from 'lucide-react';
 import { FileUploader } from './FileUploader';
 import { ProcessingState } from './ProcessingState';
@@ -8,91 +8,30 @@ import { CorrectionsList } from '../results/CorrectionsList';
 import { LineItemsTable } from '../results/LineItemsTable';
 import { ReviewModal } from '../review/ReviewModal';
 import { Button } from '../../components/common/Button';
-import { DocumentProcessingResult } from '../../types/document';
-import { documentService } from '../../services/documentService';
-import { triggerBlobDownload } from '../../utils/download';
+import { useGenerator } from '../../context/GeneratorContext';
 
 export const GeneratorScreen: React.FC = () => {
-  const [processingFile, setProcessingFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processResult, setProcessResult] = useState<DocumentProcessingResult | null>(null);
-  const [processError, setProcessError] = useState<string | null>(null);
-
-  // Review modal state
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
-  // XLSX download state
-  const [isDownloadingXlsx, setIsDownloadingXlsx] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
-
-  const handleStartProcess = async (file: File) => {
-    setProcessingFile(file);
-    setIsProcessing(true);
-    setProcessError(null);
-    setProcessResult(null);
-    setDownloadSuccess(false);
-    setDownloadError(null);
-
-    try {
-      const result = await documentService.processDocument(file);
-      setProcessResult(result);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setProcessError(err.message);
-      } else {
-        setProcessError('Document processing encountered an error. Please verify the PDF format.');
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleReset = () => {
-    setProcessingFile(null);
-    setIsProcessing(false);
-    setProcessResult(null);
-    setProcessError(null);
-    setIsReviewModalOpen(false);
-    setDownloadSuccess(false);
-    setDownloadError(null);
-  };
-
-  const handleDownloadXlsx = async () => {
-    // Prevent duplicate download clicks (Req 13)
-    if (isDownloadingXlsx) return;
-
-    if (!processResult?.xlsxBase64) {
-      setDownloadError('Unable to download the Excel file. Please try again.');
-      return;
-    }
-
-    setIsDownloadingXlsx(true);
-    setDownloadError(null);
-    setDownloadSuccess(false);
-
-    try {
-      const defaultName = `${processResult.sourceFilename.replace(/\.pdf$/i, '')}_reconciled.xlsx`;
-      const filename = processResult.summary.xlsx?.generatedXlsxFilename || defaultName;
-
-      // Backend call with Authorization header and real binary XLSX response (Req 3, 4, 5, 6, 7, 8, 9)
-      const { blob, filename: resolvedFilename } = await documentService.downloadXlsx(
-        processResult.xlsxBase64,
-        filename
-      );
-
-      // Trigger browser download of authentic binary XLSX (Req 8, 9, 10, 11)
-      triggerBlobDownload(blob, resolvedFilename);
-      setDownloadSuccess(true);
-      // Auto-clear success notification after 6 seconds (Req 16)
-      setTimeout(() => setDownloadSuccess(false), 6000);
-    } catch {
-      // User-friendly safe error without stack traces (Req 14 & 15)
-      setDownloadError('Unable to download the Excel file. Please try again.');
-    } finally {
-      setIsDownloadingXlsx(false);
-    }
-  };
+  const {
+    status,
+    isProcessing,
+    filename,
+    uploadMode,
+    uploadProgress,
+    currentStage,
+    processResult,
+    processError,
+    isReviewModalOpen,
+    isDownloadingXlsx,
+    downloadSuccess,
+    downloadError,
+    startProcessing,
+    resetGenerator,
+    cancelProcessing,
+    downloadXlsx,
+    setReviewModalOpen,
+    handleReviewResolved,
+    clearError,
+  } = useGenerator();
 
   const handleViewCorrections = () => {
     const el = document.getElementById('corrections-section');
@@ -101,12 +40,8 @@ export const GeneratorScreen: React.FC = () => {
     }
   };
 
-  const handleReviewResolved = (updatedResult: DocumentProcessingResult) => {
-    setProcessResult(updatedResult);
-  };
-
-  const status = processResult?.summary?.status;
-  const isRejected = status === 'REJECTED';
+  const docStatus = processResult?.summary?.status;
+  const isRejected = docStatus === 'REJECTED';
   const openIssues = processResult?.summary?.issues?.filter((i) => !i.resolved) || [];
   const reviewToken = processResult?.summary?.review?.reviewToken;
 
@@ -127,7 +62,7 @@ export const GeneratorScreen: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleReset}
+            onClick={resetGenerator}
             leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
           >
             New Document
@@ -146,7 +81,7 @@ export const GeneratorScreen: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => setProcessError(null)}
+            onClick={clearError}
             className="text-xs hover:underline text-foreground-subtle"
           >
             Dismiss
@@ -157,14 +92,21 @@ export const GeneratorScreen: React.FC = () => {
       {/* State 1: File Uploader (when not processing and no result) */}
       {!isProcessing && !processResult && (
         <FileUploader
-          onProcess={handleStartProcess}
+          onProcess={startProcessing}
           isProcessing={isProcessing}
         />
       )}
 
-      {/* State 2: Processing state */}
+      {/* State 2: Uploading / Processing state */}
       {isProcessing && (
-        <ProcessingState filename={processingFile?.name || 'document.pdf'} />
+        <ProcessingState
+          filename={filename || 'document.pdf'}
+          status={status}
+          uploadMode={uploadMode}
+          uploadProgress={uploadProgress}
+          currentStage={currentStage}
+          onCancel={cancelProcessing}
+        />
       )}
 
       {/* State 3: Rejected Status */}
@@ -186,7 +128,7 @@ export const GeneratorScreen: React.FC = () => {
             <Button
               variant="secondary"
               size="md"
-              onClick={handleReset}
+              onClick={resetGenerator}
               leftIcon={<RotateCcw className="w-4 h-4" />}
             >
               Try Another Document
@@ -203,13 +145,13 @@ export const GeneratorScreen: React.FC = () => {
             summary={processResult.summary}
             sourceFilename={processResult.sourceFilename}
             hasXlsxData={Boolean(processResult.xlsxBase64)}
-            onDownloadXlsx={handleDownloadXlsx}
+            onDownloadXlsx={downloadXlsx}
             isDownloading={isDownloadingXlsx}
             downloadSuccess={downloadSuccess}
             downloadError={downloadError}
-            onOpenReview={() => setIsReviewModalOpen(true)}
+            onOpenReview={() => setReviewModalOpen(true)}
             onViewCorrections={handleViewCorrections}
-            onReset={handleReset}
+            onReset={resetGenerator}
           />
 
           {/* Grid: Financial Totals & Corrections */}
@@ -247,7 +189,7 @@ export const GeneratorScreen: React.FC = () => {
           {reviewToken && openIssues.length > 0 && (
             <ReviewModal
               isOpen={isReviewModalOpen}
-              onClose={() => setIsReviewModalOpen(false)}
+              onClose={() => setReviewModalOpen(false)}
               reviewToken={reviewToken}
               issues={openIssues}
               onReviewResolved={handleReviewResolved}

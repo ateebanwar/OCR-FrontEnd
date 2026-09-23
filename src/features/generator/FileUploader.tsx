@@ -3,12 +3,12 @@ import { UploadCloud, FileText, X, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '../../components/common/Button';
 import { formatFileSize } from '../../utils/formatters';
 
+import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from '../../services/documentService';
+
 interface FileUploaderProps {
   onProcess: (file: File) => void;
   isProcessing: boolean;
 }
-
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
   onProcess,
@@ -32,9 +32,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       return;
     }
 
-    // Validate size
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setValidationError('File exceeds the maximum 25 MB size limit.');
+    // Validate size (strictly reject > 25 MB)
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setValidationError(`File is too large. Maximum supported PDF size is ${MAX_UPLOAD_SIZE_MB} MB.`);
       return;
     }
 

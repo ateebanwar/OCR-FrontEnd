@@ -9,6 +9,8 @@ import { SettingsScreen } from './features/settings/SettingsScreen';
 import { AboutScreen } from './features/about/AboutScreen';
 import { Loader2 } from 'lucide-react';
 
+import { GeneratorProvider } from './context/GeneratorContext';
+
 export const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
@@ -31,12 +33,14 @@ export const AppContent: React.FC = () => {
   }
 
   return (
-    <AppLayout currentTab={currentTab} onSelectTab={setCurrentTab}>
-      {currentTab === 'home' && <HomeScreen onNavigate={setCurrentTab} />}
-      {currentTab === 'generator' && <GeneratorScreen />}
-      {currentTab === 'settings' && <SettingsScreen />}
-      {currentTab === 'about' && <AboutScreen />}
-    </AppLayout>
+    <GeneratorProvider>
+      <AppLayout currentTab={currentTab} onSelectTab={setCurrentTab}>
+        {currentTab === 'home' && <HomeScreen onNavigate={setCurrentTab} />}
+        {currentTab === 'generator' && <GeneratorScreen />}
+        {currentTab === 'settings' && <SettingsScreen />}
+        {currentTab === 'about' && <AboutScreen />}
+      </AppLayout>
+    </GeneratorProvider>
   );
 };
 

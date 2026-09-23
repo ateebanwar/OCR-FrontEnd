@@ -78,35 +78,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       title="Document Review & Discrepancy Resolution"
       subtitle={`Please review ${issues.length} item${issues.length > 1 ? 's' : ''} requiring authoritative decision`}
       maxWidth="2xl"
-    >
-      <div className="space-y-5">
-        {submitError && (
-          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{submitError}</span>
-          </div>
-        )}
-
-        <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
-          {issues.map((issue, index) => {
-            const resolution = resolutions[index] || {
-              issueId: issue.id,
-              userDecision: issue.resolutionOptions[0] || 'KEEP_AS_IS',
-            };
-
-            return (
-              <IssueResolutionCard
-                key={issue.id}
-                issue={issue}
-                resolution={resolution}
-                onChangeResolution={(updated) => handleUpdateResolution(index, updated)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Modal Footer Actions */}
-        <div className="pt-4 border-t border-border flex items-center justify-between">
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -126,6 +99,33 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           >
             Apply & Recalculate
           </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {submitError && (
+          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{submitError}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {issues.map((issue, index) => {
+            const resolution = resolutions[index] || {
+              issueId: issue.id,
+              userDecision: issue.resolutionOptions[0] || 'KEEP_AS_IS',
+            };
+
+            return (
+              <IssueResolutionCard
+                key={issue.id}
+                issue={issue}
+                resolution={resolution}
+                onChangeResolution={(updated) => handleUpdateResolution(index, updated)}
+              />
+            );
+          })}
         </div>
       </div>
     </Modal>
